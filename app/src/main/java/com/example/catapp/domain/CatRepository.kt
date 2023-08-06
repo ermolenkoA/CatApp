@@ -4,5 +4,5 @@ import com.example.catapp.remote.network.CatApiInterface
 import javax.inject.Inject
 
 class CatRepository @Inject constructor(private val apiInterface: CatApiInterface) {
-    fun getCats(page: Int, amount: Int) = apiInterface.getCats(amount, page)
+    suspend fun getCats(page: Int, amount: Int) = apiInterface.getCats(amount, page)
 }

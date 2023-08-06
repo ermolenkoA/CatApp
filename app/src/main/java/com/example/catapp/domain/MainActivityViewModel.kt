@@ -3,8 +3,11 @@ package com.example.catapp.domain
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.catapp.remote.data.CatModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -15,25 +18,25 @@ class MainActivityViewModel @Inject constructor(private val repository: CatRepos
     private var _catsData = MutableLiveData<List<CatModel>?>(null)
     val catsData: LiveData<List<CatModel>?> get() = _catsData
 
+    private var _loadingState = MutableLiveData<Boolean>(false)
+    val loadingState: LiveData<Boolean> get() = _loadingState
+
+    private var shouldRefresh = true
     fun loadCats(page: Int, amount: Int) {
-        repository.getCats(page, amount).enqueue(
-            object : Callback<List<CatModel>?> {
-                override fun onResponse(
-                    call: Call<List<CatModel>?>,
-                    response: Response<List<CatModel>?>
-                ) {
-                    if (response.isSuccessful) {
-                        _catsData.postValue(response.body())
-                    } else {
-                        _catsData.postValue(null)
-                    }
-                }
+        viewModelScope.launch {
+            _loadingState.value = true
 
-                override fun onFailure(call: Call<List<CatModel>?>, t: Throwable) {
-                    _catsData.postValue(null)
+            while (shouldRefresh) {
+                val response = repository.getCats(page, amount)
+                if(response.isSuccessful) {
+                    _catsData.value = response.body()
+                } else {
+                    _catsData.value = null
                 }
-
+                _loadingState.value = false
+                delay(20_000)
             }
-        )
+
+        }
     }
 }
